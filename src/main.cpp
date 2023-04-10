@@ -1,40 +1,26 @@
 #include <Arduino.h>
 
+//define UART3 port
+HardwareSerial Serial3(PB11, PB10);
+
+//#define BOARD_NAME "STM32Well"
+
 //Import Wi-Fi credentials from external file out of git repo
 #include <Credentials.h>
 const char *ssid = ssid_name;
 const char *password = ssid_password;
 
-#include "defines.h"
-
-int status = WL_IDLE_STATUS;     // the Wifi radio's status
-
-#include <MQTTPubSubClient_Generic.h>
+#include "WiFi.h" 
 WiFiClient client;
-MQTTPubSubClient mqttClient;
+
+#include <MQTTPubSubClient.h>
+MQTTPubSubClient mqtt;
 
 #define MQTT_SERVER           "ha.local"
 #define MQTT_PORT             1883
 
 const char *PubTopic    = "/mqttPubSub";                                  // Topic to publish
-const char *PubMessage  = "Hello from " BOARD_NAME " with " SHIELD_TYPE;       // Topic Message to publish
-
-void printWifiStatus()
-{
-  // print the SSID of the network you're attached to:
-  // you're connected now, so print out the data
-  Serial.print(F("You're connected to the network, IP = "));
-  Serial.println(WiFi.localIP());
-
-  Serial.print(F("SSID: "));
-  Serial.print(WiFi.SSID());
-
-  // print the received signal strength:
-  int32_t rssi = WiFi.RSSI();
-  Serial.print(F(", Signal strength (RSSI):"));
-  Serial.print(rssi);
-  Serial.println(F(" dBm"));
-}
+const char *PubMessage  = "Hello from " BOARD_NAME;       // Topic Message to publish
 
 void setup()
 {
@@ -45,65 +31,13 @@ void setup()
 
   Serial.print(F("\nStart WiFiMQTT on "));
   Serial.print(BOARD_NAME);
-  Serial.print(F(" with "));
-  Serial.println(SHIELD_TYPE);
-  Serial.println(WIFI_WEBSERVER_VERSION);
-  Serial.println(MQTT_PUBSUB_CLIENT_GENERIC_VERSION);
-
-#if WIFI_USING_ESP_AT
-
-  // initialize serial for ESP module
-  EspSerial.begin(115200);
-  // initialize ESP module
-  WiFi.init(&EspSerial);
-
+  
+  initializeWiFiShield();
   Serial.println(F("WiFi shield init done"));
-
-#endif
-
-#if !(ESP32 || ESP8266)
-
-  // check for the presence of the shield
-#if USE_WIFI_NINA
-
-  if (WiFi.status() == WL_NO_MODULE)
-#else
-  if (WiFi.status() == WL_NO_SHIELD)
-#endif
-  {
-    Serial.println(F("WiFi shield not present"));
-
-    // don't continue
-    while (true);
-  }
-
-#if USE_WIFI_NINA
-  String fv = WiFi.firmwareVersion();
-
-  if (fv < WIFI_FIRMWARE_LATEST_VERSION)
-  {
-    Serial.println(F("Please upgrade the firmware"));
-  }
-
-#endif
-
-#endif
 
   Serial.print(F("Connecting to SSID: "));
   Serial.println(ssid);
-
-  status = WiFi.begin(ssid, password);
-
-  delay(1000);
-
-  // attempt to connect to WiFi network
-  while ( status != WL_CONNECTED)
-  {
-    delay(500);
-
-    // Connect to WPA/WPA2 network
-    status = WiFi.status();
-  }
+  establishWiFi(ssid, password);
 
   // you're connected now, so print out the data
   printWifiStatus();
@@ -120,20 +54,21 @@ void setup()
   Serial.println("\nConnected!");
 
   // initialize mqtt client
-  mqttClient.begin(client);
-
+  mqtt.begin(client);
+  
   Serial.print("Connecting to mqtt broker...");
 
-  while (!mqttClient.connect("arduino", "public", "public"))
+  while (!mqtt.connect("arduino", "public", "public"))
   {
     Serial.print(".");
     delay(1000);
   }
+   
 
   Serial.println(" connected!");
 
   // subscribe callback which is called when every packet has come
-  mqttClient.subscribe([](const String & topic, const String & payload, const size_t size)
+  mqtt.subscribe([](const String & topic, const String & payload, const size_t size)
   {
     (void) size;
 
@@ -141,7 +76,7 @@ void setup()
   });
 
   // subscribe topic and callback which is called when /hello has come
-  mqttClient.subscribe(PubTopic, [](const String & payload, const size_t size)
+  mqtt.subscribe(PubTopic, [](const String & payload, const size_t size)
   {
     (void) size;
 
@@ -151,12 +86,14 @@ void setup()
     Serial.println(payload);
   });
 
-  mqttClient.publish(PubTopic, PubMessage);
+  mqtt.publish(PubTopic, PubMessage);
+  
 }
 
 void loop()
 {
-  mqttClient.update();  // should be called
+  
+  mqtt.update();  // should be called
 
   // publish message
   static uint32_t prev_ms = millis();
@@ -164,6 +101,7 @@ void loop()
   if (millis() > prev_ms + 30000)
   {
     prev_ms = millis();
-    mqttClient.publish(PubTopic, PubMessage);
+    mqtt.publish(PubTopic, PubMessage);
   }
+  
 }
