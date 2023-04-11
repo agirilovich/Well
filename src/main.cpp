@@ -1,8 +1,5 @@
 #include <Arduino.h>
 
-//define UART3 port
-HardwareSerial Serial3(PB11, PB10);
-
 //#define BOARD_NAME "STM32Well"
 
 //Import credentials from external file out of git repo
@@ -24,11 +21,13 @@ MQTTPubSubClient mqtt;
 
 const char *StateTopic    = "/homeassistant/sensor/well/config";   // State Topic
 const char *ConfigTopic    = "/homeassistant/sensor/well/config";   // Autodiscovery topic
-const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"cm\", \"state_topic\": StateTopic}";       // Message for Autodiscovery
+const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": StateTopic}";       // Message for Autodiscovery
 
 //UltrasonicSensor definitions
-int WaterLevel = 0;
-
+#include "ultrasonic.h"
+unsigned int WaterLevel = 0;
+#define ArrayLenght 30
+unsigned int LevelsArray[ArrayLenght] = { 0 };
 
 //Multitask definitions
 #include <TaskScheduler.h>
@@ -82,6 +81,8 @@ void setup()
 
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
 
+  initializeUltrasonic();
+
 }
 
 void loop()
@@ -103,5 +104,28 @@ void MQTTMessageCallback()
 
 void UltrasonicSensorCallback()
 {
-  
+  Serial.print("Triggering distance measure...");
+  unsigned int LastLevel = UltrasonicGetDistance();
+  Serial.print("Received value: ");
+  Serial.print(LastLevel);
+  if(LastLevel > 0){
+    //shifting array to right direction
+    int i;
+    for(i=ArrayLenght-1; i>0; i--)
+    {
+      LevelsArray[i] = LevelsArray[i-1];
+    }
+    LevelsArray[0] = LastLevel;
+  }
+
+  //calculate expectation value
+  float prb = (1 / ArrayLenght);
+  float sum = 0;
+  for (int i = 0; i < ArrayLenght; i++)
+  {
+    sum += LevelsArray[i] * prb;
+  }
+  WaterLevel = (unsigned int)sum;
+  Serial.print("Last expected value is:");
+  Serial.print(WaterLevel);
 }
