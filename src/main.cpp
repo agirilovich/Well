@@ -26,7 +26,23 @@ const char *StateTopic    = "/homeassistant/sensor/well/config";   // State Topi
 const char *ConfigTopic    = "/homeassistant/sensor/well/config";   // Autodiscovery topic
 const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"cm\", \"state_topic\": StateTopic}";       // Message for Autodiscovery
 
+//UltrasonicSensor definitions
 int WaterLevel = 0;
+
+
+//Multitask definitions
+#include <TaskScheduler.h>
+#define _TASK_SLEEP_ON_IDLE_RUN  // Enable 1 ms SLEEP_IDLE powerdowns between runs if no callback methods were invoked during the pass
+
+Scheduler runner;
+
+void UltrasonicSensorCallback();
+void mqttDelayer();
+void MQTTMessageCallback();
+
+Task UltrasonicThread(10 * TASK_SECOND, TASK_FOREVER, &UltrasonicSensorCallback, &runner, true);  //Initially only task is enabled. It runs every 10 seconds indefinitely.
+Task mqttThreadDelay(5 * TASK_MINUTE, TASK_ONCE, &mqttDelayer, &runner, true);  //Delay for first run of MQTT publisher.
+Task mqttThread(5 * TASK_MINUTE, TASK_FOREVER, &MQTTMessageCallback, &runner);  //Runs every 10 minutes after several measurements of Ultrasonic Sensor
 
 void setup()
 {
@@ -64,10 +80,28 @@ void setup()
   //Initialise MQTT autodiscovery topic and sensor
   initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, StateTopic, ConfigTopic, ConfigMessage);
 
+  runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
+
 }
 
 void loop()
 {
+  runner.execute();
+}
+
+
+void mqttDelayer()
+{
+  mqttThread.enable();
+  runner.addTask(mqttThread);
+}
+
+void MQTTMessageCallback()
+{
   publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, StateTopic, WaterLevel);
-     
+}
+
+void UltrasonicSensorCallback()
+{
+  
 }
