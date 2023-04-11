@@ -1,4 +1,4 @@
-#include "WiFi.h"
+#include "controlWiFi.h"
 
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
