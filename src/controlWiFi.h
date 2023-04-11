@@ -1,5 +1,4 @@
-#include <Arduino.h>
-#include "WiFiEspAT.h"
+#include <WiFiEspAT.h>
 
 //Definition for Wi-Fi ESP_AT module
 #define EspSerial       Serial2

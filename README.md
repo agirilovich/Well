@@ -11,4 +11,4 @@ HomeAsstant service display level of water as a binary sensor value.
 * DC-DC Step-Down inverter DS-MINI-360 for powering WT8266 module
 * ESP-07S Wi-Fi module
 
-[Device module schematic](well_schematic.png)
+![Device module schematic](well_schematic.png)

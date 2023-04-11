@@ -5,22 +5,28 @@ HardwareSerial Serial3(PB11, PB10);
 
 //#define BOARD_NAME "STM32Well"
 
-//Import Wi-Fi credentials from external file out of git repo
+//Import credentials from external file out of git repo
 #include <Credentials.h>
 const char *ssid = ssid_name;
 const char *password = ssid_password;
 
-#include "WiFi.h" 
+const char *mqtt_host = mqtt_server;
+const int mqtt_port = 1883;
+const char *mqtt_user = mqtt_username;
+const char *mqtt_pass = mqtt_password;
+
+
+#include "controlWiFi.h" 
 WiFiClient client;
 
-#include <MQTTPubSubClient.h>
+#include "MQTT_task.h"
 MQTTPubSubClient mqtt;
 
-#define MQTT_SERVER           "ha.local"
-#define MQTT_PORT             1883
+const char *StateTopic    = "/homeassistant/sensor/well/config";   // State Topic
+const char *ConfigTopic    = "/homeassistant/sensor/well/config";   // Autodiscovery topic
+const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"cm\", \"state_topic\": StateTopic}";       // Message for Autodiscovery
 
-const char *PubTopic    = "/mqttPubSub";                                  // Topic to publish
-const char *PubMessage  = "Hello from " BOARD_NAME;       // Topic Message to publish
+int WaterLevel = 0;
 
 void setup()
 {
@@ -35,17 +41,17 @@ void setup()
   initializeWiFiShield();
   Serial.println(F("WiFi shield init done"));
 
-  Serial.print(F("Connecting to SSID: "));
-  Serial.println(ssid);
+  Serial.print(F("Connecting to WiFi network"));
+  Serial.print(ssid);
   establishWiFi(ssid, password);
 
   // you're connected now, so print out the data
   printWifiStatus();
+  
+  Serial.print("Connecting to MQTT broker host: ");
+  Serial.println(mqtt_host);
 
-  Serial.print("Connecting to host ");
-  Serial.println(MQTT_SERVER);
-
-  while (!client.connect(MQTT_SERVER, MQTT_PORT))
+  while (!client.connect(mqtt_host, mqtt_port))
   {
     Serial.print(".");
     delay(1000);
@@ -53,55 +59,15 @@ void setup()
 
   Serial.println("\nConnected!");
 
-  // initialize mqtt client
   mqtt.begin(client);
-  
-  Serial.print("Connecting to mqtt broker...");
 
-  while (!mqtt.connect("arduino", "public", "public"))
-  {
-    Serial.print(".");
-    delay(1000);
-  }
-   
+  //Initialise MQTT autodiscovery topic and sensor
+  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, StateTopic, ConfigTopic, ConfigMessage);
 
-  Serial.println(" connected!");
-
-  // subscribe callback which is called when every packet has come
-  mqtt.subscribe([](const String & topic, const String & payload, const size_t size)
-  {
-    (void) size;
-
-    Serial.println("MQTT received: " + topic + " - " + payload);
-  });
-
-  // subscribe topic and callback which is called when /hello has come
-  mqtt.subscribe(PubTopic, [](const String & payload, const size_t size)
-  {
-    (void) size;
-
-    Serial.print("Subcribed to ");
-    Serial.print(PubTopic);
-    Serial.print(" => ");
-    Serial.println(payload);
-  });
-
-  mqtt.publish(PubTopic, PubMessage);
-  
 }
 
 void loop()
 {
-  
-  mqtt.update();  // should be called
-
-  // publish message
-  static uint32_t prev_ms = millis();
-
-  if (millis() > prev_ms + 30000)
-  {
-    prev_ms = millis();
-    mqtt.publish(PubTopic, PubMessage);
-  }
-  
+  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, StateTopic, WaterLevel);
+     
 }
