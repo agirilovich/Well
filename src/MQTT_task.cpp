@@ -22,7 +22,7 @@ void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const cha
 }
 
 
-void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *StateTopic, int PayloadMessage)
+void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *StateTopic, unsigned int PayloadMessage)
 {
   mqtt.connect("stm32_well", mqtt_user, mqtt_pass);
   //mqtt.update();
