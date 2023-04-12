@@ -5,7 +5,7 @@ HomeAsstant service display level of water as a binary sensor value.
 
 # Used modules
 
-* BluePill STM32C06T06 mikrocontroller
+* BluePill STM32C8T6 microcontroller
 * AJ-SR04M ultrasonic module, switched to "Serial Port triger" mode (Mode 4)
 * DC-DC Step-Down inverter for conversation 18-25V power from solar panel to stable 5V
 * DC-DC Step-Down inverter DS-MINI-360 for powering WT8266 module
