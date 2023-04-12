@@ -25,9 +25,13 @@ const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\
 
 //UltrasonicSensor definitions
 #include "ultrasonic.h"
-unsigned int WaterLevel = 0;
+
+//LWMA values filtration
+#include <RunningAverage.h>
 #define ArrayLenght 30
-unsigned int LevelsArray[ArrayLenght] = { 0 };
+RunningAverage LevelsArray(ArrayLenght);
+unsigned int WaterLevel = 0;
+
 
 //Multitask definitions
 #include <TaskScheduler.h>
@@ -83,6 +87,8 @@ void setup()
 
   initializeUltrasonic();
 
+  LevelsArray.clear();
+
 }
 
 void loop()
@@ -99,6 +105,7 @@ void mqttDelayer()
 
 void MQTTMessageCallback()
 {
+  WaterLevel = LevelsArray.getAverage();
   publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, StateTopic, WaterLevel);
 }
 
@@ -109,23 +116,6 @@ void UltrasonicSensorCallback()
   Serial.print("Received value: ");
   Serial.print(LastLevel);
   if(LastLevel > 0){
-    //shifting array to right direction
-    int i;
-    for(i=ArrayLenght-1; i>0; i--)
-    {
-      LevelsArray[i] = LevelsArray[i-1];
-    }
-    LevelsArray[0] = LastLevel;
+    LevelsArray.addValue(LastLevel);
   }
-
-  //calculate expectation value
-  float prb = (1 / ArrayLenght);
-  float sum = 0;
-  for (int i = 0; i < ArrayLenght; i++)
-  {
-    sum += LevelsArray[i] * prb;
-  }
-  WaterLevel = (unsigned int)sum;
-  Serial.print("Last expected value is:");
-  Serial.print(WaterLevel);
 }
