@@ -3,7 +3,7 @@
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
 //define UART2 port
-HardwareSerial Serial2(PA3, PA2);
+HardwareSerial Serial1(PA10, PA9);
 
 void printWifiStatus()
 {
