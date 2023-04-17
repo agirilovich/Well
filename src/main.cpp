@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
-//#define BOARD_NAME "STM32Well"
+#ifndef DEVICE_BOARD_NAME
+#  define DEVICE_BOARD_NAME "STM32Well"
+#endif
 
 //Import credentials from external file out of git repo
 #include <Credentials.h>
@@ -19,9 +21,8 @@ WiFiClient client;
 #include "MQTT_task.h"
 MQTTPubSubClient mqtt;
 
-const char *StateTopic    = "/homeassistant/sensor/well/config";   // State Topic
-const char *ConfigTopic    = "/homeassistant/sensor/well/config";   // Autodiscovery topic
-const char *ConfigMessage  = "{\"name\": \"well\", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": StateTopic}";       // Message for Autodiscovery
+const char *Topic    = "/homeassistant/sensor/well/config";   // Topic in MQTT to publish
+const String ConfigMessage  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": StateTopic}");       // Message for Autodiscovery
 
 //UltrasonicSensor definitions
 #include "ultrasonic.h"
@@ -81,7 +82,7 @@ void setup()
   mqtt.begin(client);
 
   //Initialise MQTT autodiscovery topic and sensor
-  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, StateTopic, ConfigTopic, ConfigMessage);
+  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, Topic, ConfigMessage);
 
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
 
@@ -106,7 +107,7 @@ void mqttDelayer()
 void MQTTMessageCallback()
 {
   WaterLevel = LevelsArray.getAverage();
-  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, StateTopic, WaterLevel);
+  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, Topic, WaterLevel);
 }
 
 void UltrasonicSensorCallback()

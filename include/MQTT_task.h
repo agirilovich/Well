@@ -1,7 +1,7 @@
 #include <MQTTPubSubClient.h>
 
-void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *StateTopic, const char* ConfigTopic, const char *ConfigMessage);
+void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, const String ConfigMessage);
 
-void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *StateTopic, unsigned int PayloadMessage);
+void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, unsigned int PayloadMessage);
 
 
