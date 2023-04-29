@@ -22,7 +22,7 @@ WiFiClient client;
 MQTTPubSubClient mqtt;
 
 const char *Topic    = "/homeassistant/sensor/well/config";   // Topic in MQTT to publish
-const String ConfigMessage  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": StateTopic}");       // Message for Autodiscovery
+const String SensorConfig  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": ") + String(*Topic) + "/state";       // Message for Autodiscovery
 
 //UltrasonicSensor definitions
 #include "ultrasonic.h"
@@ -82,7 +82,10 @@ void setup()
   mqtt.begin(client);
 
   //Initialise MQTT autodiscovery topic and sensor
-  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, Topic, ConfigMessage);
+  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, Topic, SensorConfig);
+
+  //Activate sensor
+  publishMQTTStatus(mqtt, mqtt_user, mqtt_pass, Topic, true);
 
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
 
