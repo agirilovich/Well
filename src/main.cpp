@@ -87,9 +87,9 @@ void setup()
   while (!Serial && millis() < 5000);
 
   Serial.print(F("\nStart WiFiMQTT on "));
-  Serial.print(BOARD_NAME);
+  Serial.print(DEVICE_BOARD_NAME);
   
-  initializeWiFiShield();
+  initializeWiFiShield(DEVICE_BOARD_NAME);
   Serial.println(F("WiFi shield init done"));
 
   Serial.print(F("Connecting to WiFi network"));
