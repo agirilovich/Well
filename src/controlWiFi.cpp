@@ -22,10 +22,11 @@ void printWifiStatus()
   Serial.println(F(" dBm"));
 }
 
-void initializeWiFiShield()
+void initializeWiFiShield(char *device_name)
 {
     EspSerial.begin(115200);
-    WiFi.init(&EspSerial);
+    
+    WiFi.init(&EspSerial, ESP_RESET_PIN);
 
     if (WiFi.status() == WL_NO_MODULE) {
       Serial.println();
@@ -33,11 +34,13 @@ void initializeWiFiShield()
       // don't continue
       while (true);
     }
+
+    WiFi.hostname(device_name);
 }
 
 void establishWiFi(const char *ssid, const char *password)
 {
-
+  
   WiFi.disconnect(); // to clear the way. not persistent
   WiFi.setPersistent(); // set the following WiFi connection as persistent
   WiFi.endAP(); // to disable default automatic start of persistent AP at startup

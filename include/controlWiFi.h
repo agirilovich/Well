@@ -3,7 +3,8 @@
 //Definition for Wi-Fi ESP_AT module
 #define EspSerial       Serial1
 #define _WIFI_LOGLEVEL_             1
+#define ESP_RESET_PIN PA8
 
 void printWifiStatus();
-void initializeWiFiShield();
+void initializeWiFiShield(char *device_name);
 void establishWiFi(const char *ssid, const char *password);
