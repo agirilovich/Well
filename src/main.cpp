@@ -4,6 +4,18 @@
 #  define DEVICE_BOARD_NAME "STM32Well"
 #endif
 
+#ifndef MQTT_GENERAL_PREFIX
+#  define MQTT_GENERAL_PREFIX "home"
+#endif
+
+#define MQTT_TOPIC_NAME "/sensor/well"
+#define MQTT_CONFIG_PREFIX "homeassistant"
+#define SENSOR_NAME "Rain_Water_level";
+
+#define MQTT_TOPIC_CONFIG MQTT_CONFIG_PREFIX MQTT_TOPIC_NAME "/config"
+#define MQTT_TOPIC_STATE MQTT_CONFIG_PREFIX MQTT_TOPIC_NAME "/status"
+#define MQTT_TOPIC_VALUE MQTT_GENERAL_PREFIX SENSOR_NAME
+
 //Import credentials from external file out of git repo
 #include <Credentials.h>
 const char *ssid = ssid_name;
@@ -21,8 +33,21 @@ WiFiClient client;
 #include "MQTT_task.h"
 MQTTPubSubClient mqtt;
 
-const char *Topic    = "/homeassistant/sensor/well/config";   // Topic in MQTT to publish
-const String SensorConfig  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": ") + String(*Topic) + "/state";       // Message for Autodiscovery
+//Define MQTT Topic for HomeAssistant Discovery
+const char *MQTTTopicConfig = MQTT_TOPIC_CONFIG;
+
+//Define MQTT Topic for HomeAssistant Sensor state
+const char *MQTTTopicState = MQTT_TOPIC_STATE;
+
+//Define MQTT Topic for HomeAssistant Sensor value
+const char *MQTTTopicValue = MQTT_TOPIC_VALUE;
+
+
+//Define objects for MQTT messages in JSON format
+#include <ArduinoJson.h>
+
+StaticJsonDocument<512> JsonSensorConfig;
+char Buffer[256];
 
 //UltrasonicSensor definitions
 #include "ultrasonic.h"
@@ -53,6 +78,12 @@ void setup()
   // Debug console
   Serial.begin(115200);
 
+  JsonSensorConfig["name"] = SENSOR_NAME;
+  JsonSensorConfig["device_class"] = "distance";
+  JsonSensorConfig["state_class"] = "measurement";
+  JsonSensorConfig["unit_of_measurement"] = "mm";
+  JsonSensorConfig["state_topic"] = MQTTTopicState;
+
   while (!Serial && millis() < 5000);
 
   Serial.print(F("\nStart WiFiMQTT on "));
@@ -82,10 +113,12 @@ void setup()
   mqtt.begin(client);
 
   //Initialise MQTT autodiscovery topic and sensor
-  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, Topic, SensorConfig);
+  serializeJson(JsonSensorConfig, Buffer);
+  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, MQTTTopicConfig, Buffer);
+
 
   //Activate sensor
-  publishMQTTStatus(mqtt, mqtt_user, mqtt_pass, Topic, true);
+  publishMQTTStatus(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, true);
 
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
 
@@ -110,7 +143,9 @@ void mqttDelayer()
 void MQTTMessageCallback()
 {
   WaterLevel = LevelsArray.getAverage();
-  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, Topic, WaterLevel);
+
+  //Publish MQTT message
+  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicValue, WaterLevel);
 }
 
 void UltrasonicSensorCallback()
