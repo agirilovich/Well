@@ -13,10 +13,8 @@ void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const cha
 
   Serial.println(" connected!");
 
-  const String ConfigMessage  = String("{\"name\":") + DEVICE_BOARD_NAME + String(", \"device_class\": \"distance\", \"state_class\": \"measurement\",\"unit_of_measurement\": \"mm\", \"state_topic\": ") + String(*Topic) + "/state";       // Message for Autodiscovery
-
   //Publish message to AutoDiscovery topic
-  mqtt.publish(String(Topic) + "/config", SensorConfig, false, 0);
+  mqtt.publish(String(Topic), SensorConfig, true, 0);
   
   //Gracefully close connection to MQTT broker
   mqtt.disconnect();
@@ -28,7 +26,7 @@ void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char
 {
   mqtt.connect(DEVICE_BOARD_NAME, mqtt_user, mqtt_pass);
   //mqtt.update();
-  mqtt.publish(String(Topic) + "/state", String(PayloadMessage), false, 0);
+  mqtt.publish(Topic, String(PayloadMessage), false, 0);
   mqtt.disconnect();
 }
 
@@ -37,11 +35,11 @@ void publishMQTTStatus(MQTTPubSubClient mqtt, const char *mqtt_user, const char 
   mqtt.connect(DEVICE_BOARD_NAME, mqtt_user, mqtt_pass);
   if (Status)
   {
-    mqtt.publish(String(Topic) + "/status", "Online", false, 0);
+    mqtt.publish(Topic, "Online", false, 0);
   }
   else
   {
-    mqtt.publish(String(Topic) + "/status", "Offline", false, 0);
+    mqtt.publish(Topic, "Offline", false, 0);
   }
   //mqtt.update();
   mqtt.disconnect();
