@@ -1,5 +1,15 @@
 #include <Arduino.h>
 
+//Import credentials from external file out of git repo
+#include <Credentials.h>
+const char *ssid = ssid_name;
+const char *password = ssid_password;
+
+const char *mqtt_host = mqtt_server;
+const int mqtt_port = 1883;
+const char *mqtt_user = mqtt_username;
+const char *mqtt_pass = mqtt_password;
+
 #ifndef DEVICE_BOARD_NAME
 #  define DEVICE_BOARD_NAME "STM32Well"
 #endif
@@ -14,17 +24,6 @@
 
 #define MQTT_TOPIC_CONFIG MQTT_CONFIG_PREFIX MQTT_TOPIC_NAME "/config"
 #define MQTT_TOPIC_STATE MQTT_GENERAL_PREFIX "/" DEVICE_BOARD_NAME "/state"
-
-//Import credentials from external file out of git repo
-#include <Credentials.h>
-const char *ssid = ssid_name;
-const char *password = ssid_password;
-
-const char *mqtt_host = mqtt_server;
-const int mqtt_port = 1883;
-const char *mqtt_user = mqtt_username;
-const char *mqtt_pass = mqtt_password;
-
 
 #include "controlWiFi.h" 
 WiFiClient client;
@@ -111,7 +110,7 @@ void setup()
   //Initialise MQTT autodiscovery topic and sensor
   mqtt.setServer(mqtt_host, mqtt_port);
   serializeJson(JsonSensorConfig, Buffer);
-  Serial.println(Buffer);
+  
   initializeMQTT(mqtt, mqtt_user, mqtt_pass, MQTTTopicConfig, Buffer);
   
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.

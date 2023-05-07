@@ -9,3 +9,5 @@ const char *mqtt_username = "well";
 const char *mqtt_password = "87zcndZdf5";
 
 #endif
+
+#define MQTT_GENERAL_PREFIX "girilowicz"
