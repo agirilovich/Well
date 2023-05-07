@@ -1,4 +1,5 @@
-#include <HardwareSerial.h>
+//#include <HardwareSerial.h>
+#include <Arduino.h>
 
 void initializeUltrasonic();
 

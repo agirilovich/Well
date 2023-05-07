@@ -1,9 +1,8 @@
 #include "controlWiFi.h"
 
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
-
 //define UART2 port
-//HardwareSerial Serial1(PA10, PA9);
+HardwareSerial EspSerial(USART1);
 
 void printWifiStatus()
 {
@@ -22,20 +21,25 @@ void printWifiStatus()
   Serial.println(F(" dBm"));
 }
 
-void initializeWiFiShield(char *device_name)
+void initializeWiFiShield(const char *device_name)
 {
     EspSerial.begin(115200);
-    
-    WiFi.init(&EspSerial, ESP_RESET_PIN);
+
+
+    WiFi.init(EspSerial, ESP_RESET_PIN);
 
     if (WiFi.status() == WL_NO_MODULE) {
       Serial.println();
       Serial.println("Communication with WiFi module failed!");
       // don't continue
-      while (true);
+      while (true) {
+        EspSerial.println(WiFi.status());
+      }
     }
 
-    WiFi.hostname(device_name);
+    char fqdn[33];
+    strcpy(fqdn, device_name);
+    WiFi.setHostname(fqdn);
 }
 
 void establishWiFi(const char *ssid, const char *password)

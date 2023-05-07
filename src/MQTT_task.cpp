@@ -1,6 +1,6 @@
 #include "MQTT_task.h"
 
-void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, const String SensorConfig)
+void initializeMQTT(PubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, char *SensorConfig)
 {
 
   Serial.print("Testing connection to mqtt broker...");
@@ -11,10 +11,14 @@ void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const cha
     delay(1000);
   }
 
-  Serial.println(" connected!");
+  if(mqtt.connected()) {
+    Serial.println(" connected!");
+  } 
+
+  Serial.println("Initialise MQTT autodiscovery topic and sensor");
 
   //Publish message to AutoDiscovery topic
-  mqtt.publish(String(Topic), SensorConfig, true, 0);
+  mqtt.publish(Topic, SensorConfig, true);
   
   //Gracefully close connection to MQTT broker
   mqtt.disconnect();
@@ -22,25 +26,9 @@ void initializeMQTTTopic(MQTTPubSubClient mqtt, const char *mqtt_user, const cha
 }
 
 
-void publishMQTTPayload(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, unsigned int PayloadMessage)
+void publishMQTTPayload(PubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, char *PayloadMessage)
 {
   mqtt.connect(DEVICE_BOARD_NAME, mqtt_user, mqtt_pass);
-  //mqtt.update();
-  mqtt.publish(Topic, String(PayloadMessage), false, 0);
-  mqtt.disconnect();
-}
-
-void publishMQTTStatus(MQTTPubSubClient mqtt, const char *mqtt_user, const char *mqtt_pass, const char *Topic, bool Status)
-{
-  mqtt.connect(DEVICE_BOARD_NAME, mqtt_user, mqtt_pass);
-  if (Status)
-  {
-    mqtt.publish(Topic, "Online", false, 0);
-  }
-  else
-  {
-    mqtt.publish(Topic, "Offline", false, 0);
-  }
-  //mqtt.update();
+  mqtt.publish(Topic, PayloadMessage, false);
   mqtt.disconnect();
 }
