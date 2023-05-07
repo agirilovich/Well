@@ -10,11 +10,10 @@
 
 #define MQTT_TOPIC_NAME "/sensor/well"
 #define MQTT_CONFIG_PREFIX "homeassistant"
-#define SENSOR_NAME "Rain_Water_level";
+#define SENSOR_NAME "Rain Water Tank level"
 
 #define MQTT_TOPIC_CONFIG MQTT_CONFIG_PREFIX MQTT_TOPIC_NAME "/config"
-#define MQTT_TOPIC_STATE MQTT_CONFIG_PREFIX MQTT_TOPIC_NAME "/status"
-#define MQTT_TOPIC_VALUE MQTT_GENERAL_PREFIX SENSOR_NAME
+#define MQTT_TOPIC_STATE MQTT_GENERAL_PREFIX "/" DEVICE_BOARD_NAME "/state"
 
 //Import credentials from external file out of git repo
 #include <Credentials.h>
@@ -31,17 +30,14 @@ const char *mqtt_pass = mqtt_password;
 WiFiClient client;
 
 #include "MQTT_task.h"
-MQTTPubSubClient mqtt;
+PubSubClient mqtt(client);
+
 
 //Define MQTT Topic for HomeAssistant Discovery
 const char *MQTTTopicConfig = MQTT_TOPIC_CONFIG;
 
 //Define MQTT Topic for HomeAssistant Sensor state
 const char *MQTTTopicState = MQTT_TOPIC_STATE;
-
-//Define MQTT Topic for HomeAssistant Sensor value
-const char *MQTTTopicValue = MQTT_TOPIC_VALUE;
-
 
 //Define objects for MQTT messages in JSON format
 #include <ArduinoJson.h>
@@ -54,7 +50,7 @@ char Buffer[256];
 
 //LWMA values filtration
 #include <RunningAverage.h>
-#define ArrayLenght 30
+#define ArrayLenght 50
 RunningAverage LevelsArray(ArrayLenght);
 unsigned int WaterLevel = 0;
 
@@ -70,8 +66,9 @@ void mqttDelayer();
 void MQTTMessageCallback();
 
 Task UltrasonicThread(10 * TASK_SECOND, TASK_FOREVER, &UltrasonicSensorCallback, &runner, true);  //Initially only task is enabled. It runs every 10 seconds indefinitely.
-Task mqttThreadDelay(5 * TASK_MINUTE, TASK_ONCE, &mqttDelayer, &runner, true);  //Delay for first run of MQTT publisher.
-Task mqttThread(5 * TASK_MINUTE, TASK_FOREVER, &MQTTMessageCallback, &runner);  //Runs every 10 minutes after several measurements of Ultrasonic Sensor
+Task mqttThreadDelay(0, TASK_ONCE, &mqttDelayer, &runner, true);  //Delay for first run of MQTT publisher.
+Task mqttThread(5 * TASK_MINUTE, TASK_FOREVER, &MQTTMessageCallback);  //Runs every 5 minutes after several measurements of Ultrasonic Sensor
+
 
 void setup()
 {
@@ -90,7 +87,7 @@ void setup()
   Serial.print(DEVICE_BOARD_NAME);
   
   initializeWiFiShield(DEVICE_BOARD_NAME);
-  Serial.println(F("WiFi shield init done"));
+  Serial.println("WiFi shield init done");
 
   Serial.print(F("Connecting to WiFi network"));
   Serial.print(ssid);
@@ -101,7 +98,7 @@ void setup()
   
   Serial.print("Connecting to MQTT broker host: ");
   Serial.println(mqtt_host);
-
+  
   while (!client.connect(mqtt_host, mqtt_port))
   {
     Serial.print(".");
@@ -109,17 +106,14 @@ void setup()
   }
 
   Serial.println("\nConnected!");
-
-  mqtt.begin(client);
-
+  
+  
   //Initialise MQTT autodiscovery topic and sensor
+  mqtt.setServer(mqtt_host, mqtt_port);
   serializeJson(JsonSensorConfig, Buffer);
-  initializeMQTTTopic(mqtt, mqtt_user, mqtt_pass, MQTTTopicConfig, Buffer);
-
-
-  //Activate sensor
-  publishMQTTStatus(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, true);
-
+  Serial.println(Buffer);
+  initializeMQTT(mqtt, mqtt_user, mqtt_pass, MQTTTopicConfig, Buffer);
+  
   runner.startNow();  // This creates a new scheduling starting point for all ACTIVE tasks.
 
   initializeUltrasonic();
@@ -136,24 +130,26 @@ void loop()
 
 void mqttDelayer()
 {
-  mqttThread.enable();
   runner.addTask(mqttThread);
+  mqttThread.enableDelayed();
 }
 
 void MQTTMessageCallback()
 {
   WaterLevel = LevelsArray.getAverage();
-
+  Serial.print("Calculated water level: ");
+  Serial.println(WaterLevel);
+  itoa(WaterLevel, Buffer, 10);
   //Publish MQTT message
-  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicValue, WaterLevel);
+  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, Buffer);
 }
 
 void UltrasonicSensorCallback()
 {
-  Serial.print("Triggering distance measure...");
+  //Serial.println("Triggering distance measure...");
   unsigned int LastLevel = UltrasonicGetDistance();
-  Serial.print("Received value: ");
-  Serial.print(LastLevel);
+  //Serial.print("Received value: ");
+  //Serial.println(LastLevel);
   if(LastLevel > 0){
     LevelsArray.addValue(LastLevel);
   }
