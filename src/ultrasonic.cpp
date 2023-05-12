@@ -12,7 +12,8 @@ void initializeUltrasonic()
 unsigned int UltrasonicGetDistance()
 {
   unsigned int distance;
-  uint8_t startByte, h_data, l_data, sum = 0;
+  uint8_t h_data, l_data, sum = 0;
+  uint8_t startByte = 0;
   uint8_t buf[3];
 
   USSerial.write(0x01);
