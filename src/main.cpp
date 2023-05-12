@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include <IWatchdog.h>
+
 //Import credentials from external file out of git repo
 #include <Credentials.h>
 const char *ssid = ssid_name;
@@ -82,6 +84,13 @@ void setup()
 
   while (!Serial && millis() < 5000);
 
+  IWatchdog.begin(60*1000000);
+
+  if (IWatchdog.isReset()) {
+    Serial.printf("Rebooted by Watchdog!\n");
+    IWatchdog.clearReset();
+  }
+
   Serial.print(F("\nStart WiFiMQTT on "));
   Serial.print(DEVICE_BOARD_NAME);
   
@@ -152,4 +161,5 @@ void UltrasonicSensorCallback()
   if(LastLevel > 0){
     LevelsArray.addValue(LastLevel);
   }
+  IWatchdog.reload();
 }
