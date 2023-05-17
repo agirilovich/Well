@@ -84,6 +84,7 @@ void setup()
 
   while (!Serial && millis() < 5000);
 
+  //Set witchdog timeout for 60 seconds
   IWatchdog.begin(60*1000000);
 
   if (IWatchdog.isReset()) {
@@ -149,7 +150,9 @@ void MQTTMessageCallback()
   Serial.println(WaterLevel);
   itoa(WaterLevel, Buffer, 10);
   //Publish MQTT message
-  publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, Buffer);
+  if (!publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, Buffer)) {
+    runner.disableAll();   //pause runner and wait for watchdog if MQTT is broken
+  }
 }
 
 void UltrasonicSensorCallback()
