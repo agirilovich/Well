@@ -46,7 +46,7 @@ bool publishMQTTPayload(PubSubClient mqtt, const char *mqtt_user, const char *mq
     Serial.println(failedMQTTpublish);
   }
   //trigger watchdog is number of failed attempts reach 10
-  if (failedMQTTpublish < 10) {
+  if (failedMQTTpublish < 20) {
     mqtt.disconnect();
     return true;
   }
