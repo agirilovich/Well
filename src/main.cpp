@@ -85,7 +85,7 @@ void setup()
   while (!Serial && millis() < 5000);
 
   //Set witchdog timeout for 60 seconds
-  IWatchdog.begin(60*100000);
+  IWatchdog.begin(60*1000000);
 
   if (IWatchdog.isReset()) {
     Serial.printf("Rebooted by Watchdog!\n");
