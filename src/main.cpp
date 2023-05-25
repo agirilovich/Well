@@ -20,6 +20,8 @@ const char *mqtt_pass = mqtt_password;
 #  define MQTT_GENERAL_PREFIX "home"
 #endif
 
+#define ledPin PC13
+
 #define MQTT_TOPIC_NAME "/sensor/well"
 #define MQTT_CONFIG_PREFIX "homeassistant"
 #define SENSOR_NAME "Rain Water Tank level"
@@ -66,7 +68,7 @@ void UltrasonicSensorCallback();
 void mqttDelayer();
 void MQTTMessageCallback();
 
-Task UltrasonicThread(10 * TASK_SECOND, TASK_FOREVER, &UltrasonicSensorCallback, &runner, true);  //Initially only task is enabled. It runs every 10 seconds indefinitely.
+Task UltrasonicThread(7 * TASK_SECOND, TASK_FOREVER, &UltrasonicSensorCallback, &runner, true);  //Initially only task is enabled. It runs every 10 seconds indefinitely.
 Task mqttThreadDelay(0, TASK_ONCE, &mqttDelayer, &runner, true);  //Delay for first run of MQTT publisher.
 Task mqttThread(5 * TASK_MINUTE, TASK_FOREVER, &MQTTMessageCallback);  //Runs every 5 minutes after several measurements of Ultrasonic Sensor
 
@@ -76,6 +78,9 @@ void setup()
   // Debug console
   Serial.begin(115200);
 
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH);
+
   JsonSensorConfig["name"] = SENSOR_NAME;
   JsonSensorConfig["device_class"] = "distance";
   JsonSensorConfig["state_class"] = "measurement";
@@ -83,14 +88,26 @@ void setup()
   JsonSensorConfig["state_topic"] = MQTTTopicState;
 
   while (!Serial && millis() < 5000);
-
-  //Set witchdog timeout for 60 seconds
-  IWatchdog.begin(60*1000000);
-
+  
   if (IWatchdog.isReset()) {
     Serial.printf("Rebooted by Watchdog!\n");
-    IWatchdog.clearReset();
+    delay(120 * 1000);
+    IWatchdog.clearReset(); 
   }
+
+  //Set witchdog timeout for 32 seconds
+  IWatchdog.begin(24000000); // set to maximum value
+  IWatchdog.reload();
+  
+  while (!IWatchdog.isEnabled()) {
+    // LED blinks indefinitely
+    digitalWrite(ledPin, LOW);
+    delay(500);
+    digitalWrite(ledPin, HIGH);
+    delay(500);
+  }
+
+  Serial.println("Watchdog enabled");
 
   Serial.print(F("\nStart WiFiMQTT on "));
   Serial.print(DEVICE_BOARD_NAME);
@@ -129,6 +146,7 @@ void setup()
 
   LevelsArray.clear();
 
+  IWatchdog.reload();
 }
 
 void loop()
@@ -153,6 +171,13 @@ void MQTTMessageCallback()
   if (!publishMQTTPayload(mqtt, mqtt_user, mqtt_pass, MQTTTopicState, Buffer)) {
     runner.disableAll();   //pause runner and wait for watchdog if MQTT is broken
     IWatchdog.set(0);  //reset immediately
+    while (1) {
+    // LED blinks indefinitely
+    digitalWrite(ledPin, LOW);
+    delay(500);
+    digitalWrite(ledPin, HIGH);
+    delay(500);
+    }
   }
 }
 
